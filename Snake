@@ -1,0 +1,152 @@
+import pygame
+import random
+import sys
+
+# Initialize pygame
+pygame.init()
+
+# Display
+WIDTH = 800
+HEIGHT = 600
+CELL_SIZE = 20
+GRID_WIDTH = WIDTH // CELL_SIZE
+GRID_HEIGHT = HEIGHT // CELL_SIZE
+FPS = 10
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+
+# Window
+win = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Snake Game")
+
+# Clock
+clock = pygame.time.Clock()
+
+# Set up score
+# score = 0
+
+# Snake class
+class Snake:
+    def __init__(self):
+        self.body = [(GRID_WIDTH // 2, GRID_HEIGHT // 2)]
+        self.direction = random.choice(['UP', 'DOWN', 'LEFT', 'RIGHT'])
+        self.next_direction = self.direction
+
+    def move(self, food):  # Pass food as a parameter
+        # Update direction if changed
+        if self.next_direction in ['UP', 'DOWN'] and self.direction in ['LEFT', 'RIGHT']:
+            self.direction = self.next_direction
+        elif self.next_direction in ['LEFT', 'RIGHT'] and self.direction in ['UP', 'DOWN']:
+            self.direction = self.next_direction
+
+        x, y = self.body[0]
+        if self.direction == 'UP':
+            y -= 1
+        elif self.direction == 'DOWN':
+            y += 1
+        elif self.direction == 'LEFT':
+            x -= 1
+        elif self.direction == 'RIGHT':
+            x += 1
+        self.body.insert(0, (x, y))
+
+        # MOVEMENT
+        # If not eating food, remove the last segment to make the snake appear to move
+        if self.body[0] != food.position:
+            self.body.pop()
+
+    def grow(self):
+        self.body.append(self.body[-1])
+
+    def change_direction(self, direction):
+        self.next_direction = direction
+
+    def draw(self):
+        for segment in self.body:
+            pygame.draw.rect(win, GREEN, (segment[0] * CELL_SIZE, segment[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+
+# Food class
+class Food:
+    def __init__(self):
+        self.position = (random.randint(0, GRID_WIDTH - 1), random.randint(0, GRID_HEIGHT - 1))
+
+    def draw(self):
+        pygame.draw.rect(win, RED, (self.position[0] * CELL_SIZE, self.position[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+
+# Main function
+def main():
+    running = False
+    play_button_rect = pygame.Rect(WIDTH//2 - 25, HEIGHT//2 - 25, 50, 50)  # Center the button
+    play_button_font = pygame.font.Font(None, 36)
+    play_button_text = play_button_font.render("Play", True, WHITE)
+    play_button_text_rect = play_button_text.get_rect(center=play_button_rect.center)
+
+    while True:
+        win.fill(WHITE)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1 and play_button_rect.collidepoint(event.pos):
+                    running = True
+
+        if running:
+            # If the game is running, start the game loop
+            game_loop()
+
+        pygame.draw.rect(win, GREEN, play_button_rect)  # Set the button background to green
+        win.blit(play_button_text, play_button_text_rect)
+        pygame.display.update()
+        clock.tick(10)
+
+
+
+def game_loop():
+    snake = Snake()
+    food = Food()
+    running = True
+
+    while running:
+        clock.tick(FPS)
+        win.fill(WHITE)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    snake.change_direction('UP')
+                elif event.key == pygame.K_DOWN:
+                    snake.change_direction('DOWN')
+                elif event.key == pygame.K_LEFT:
+                    snake.change_direction('LEFT')
+                elif event.key == pygame.K_RIGHT:
+                    snake.change_direction('RIGHT')
+
+        snake.move(food)  # Pass food object to move method
+
+        if snake.body[0] == food.position:
+            snake.grow()
+            food = Food()
+
+        if snake.body[0][0] < 0 or snake.body[0][0] >= GRID_WIDTH or snake.body[0][1] < 0 or snake.body[0][1] >= GRID_HEIGHT:
+            running = False
+
+        for segment in snake.body[1:]:
+            if segment == snake.body[0]:
+                running = False
+
+        snake.draw()
+        food.draw()
+        pygame.display.update()
+
+    pygame.quit()
+
+
+if __name__ == "__main__":
+    main()
