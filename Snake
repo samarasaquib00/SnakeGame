@@ -11,11 +11,11 @@ HEIGHT = 600
 CELL_SIZE = 20
 GRID_WIDTH = WIDTH // CELL_SIZE
 GRID_HEIGHT = HEIGHT // CELL_SIZE
-FPS = 10
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
+BLACK = (0, 0, 0)
 
 # Window
 win = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -25,7 +25,17 @@ pygame.display.set_caption("Snake Game")
 clock = pygame.time.Clock()
 
 # Set up score
-# score = 0
+score = 0
+
+# Game modes and FPS
+modes = {
+    'Easy': 5,
+    'Medium': 10,
+    'Hard': 20
+}
+
+# Selected mode (default to Medium)
+selected_mode = 'Medium'
 
 # Snake class
 class Snake:
@@ -79,11 +89,25 @@ class Food:
 
 # Main function
 def main():
+    global score, selected_mode  # Declare score and selected_mode as global to modify them within the function
     running = False
     play_button_rect = pygame.Rect(WIDTH//2 - 25, HEIGHT//2 - 25, 50, 50)  # Center the button
     play_button_font = pygame.font.Font(None, 36)
     play_button_text = play_button_font.render("Play", True, WHITE)
     play_button_text_rect = play_button_text.get_rect(center=play_button_rect.center)
+
+    # Mode selection buttons
+    mode_buttons = []
+    mode_button_texts = []
+    total_width = sum(len(mode) * 15 for mode in modes) + len(modes) * 20  # Total width of all buttons
+    current_x = (WIDTH - total_width) // 2  # Starting x position to center buttons
+    for mode, _ in modes.items():
+        mode_font = pygame.font.Font(None, 24)
+        mode_text = mode_font.render(mode, True, WHITE)
+        button_rect = pygame.Rect(current_x, HEIGHT // 2 + 100, len(mode) * 15, 50)
+        mode_buttons.append(button_rect)
+        mode_button_texts.append(mode_text)
+        current_x += len(mode) * 15 + 20
 
     while True:
         win.fill(WHITE)
@@ -94,25 +118,43 @@ def main():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1 and play_button_rect.collidepoint(event.pos):
                     running = True
+                for i, button_rect in enumerate(mode_buttons):
+                    if button_rect.collidepoint(event.pos):
+                        selected_mode = list(modes.keys())[i]
 
         if running:
             # If the game is running, start the game loop
+            score = 0  # Reset score when starting a new game
             game_loop()
 
         pygame.draw.rect(win, GREEN, play_button_rect)  # Set the button background to green
         win.blit(play_button_text, play_button_text_rect)
+
+        # Draw mode selection buttons
+        for button_rect, mode_text in zip(mode_buttons, mode_button_texts):
+            pygame.draw.rect(win, BLUE, button_rect)
+            win.blit(mode_text, mode_text.get_rect(center=button_rect.center))
+
+        # Outline the selected mode button in black
+        selected_index = list(modes.keys()).index(selected_mode)
+        selected_button_rect = mode_buttons[selected_index]
+        pygame.draw.rect(win, BLACK, selected_button_rect, 3)
+
         pygame.display.update()
         clock.tick(10)
 
 
-
 def game_loop():
+    global score  # Declare score as global to modify it within the function
     snake = Snake()
     food = Food()
     running = True
 
+    # Set FPS based on selected mode
+    fps = modes[selected_mode]
+
     while running:
-        clock.tick(FPS)
+        clock.tick(fps)
         win.fill(WHITE)
 
         for event in pygame.event.get():
@@ -133,6 +175,7 @@ def game_loop():
         if snake.body[0] == food.position:
             snake.grow()
             food = Food()
+            score += 1  # Increment score when food is eaten
 
         if snake.body[0][0] < 0 or snake.body[0][0] >= GRID_WIDTH or snake.body[0][1] < 0 or snake.body[0][1] >= GRID_HEIGHT:
             running = False
@@ -143,6 +186,12 @@ def game_loop():
 
         snake.draw()
         food.draw()
+
+        # Display score
+        font = pygame.font.Font(None, 36)
+        score_text = font.render(f"Score: {score}", True, BLACK)  # Change color to black
+        win.blit(score_text, (10, 10))
+
         pygame.display.update()
 
     pygame.quit()
